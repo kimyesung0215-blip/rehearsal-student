@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── 아바타 애니메이션 ─── */
+@keyframes nod {
+  0% { transform: rotate(0deg) translateY(0); }
+  30% { transform: rotate(2deg) translateY(10px); }
+  60% { transform: rotate(0deg) translateY(0); }
+  80% { transform: rotate(1.5deg) translateY(7px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+.anim-nod { animation: nod 0.9s ease-in-out; }
+
+@keyframes tilt {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-9deg); }
+}
+.anim-tilt { animation: tilt 0.5s ease-out forwards; }
+
+@keyframes tiltHold {
+  0% { transform: rotate(-9deg); }
+  50% { transform: rotate(-12deg); }
+  100% { transform: rotate(-9deg); }
+}
+.anim-tilt-hold { animation: tiltHold 2s ease-in-out infinite; }
+
+@keyframes lookUp {
+  0% { transform: rotate(0deg) translateY(0); }
+  100% { transform: rotate(4deg) translateY(-8px); }
+}
+.anim-look-up { animation: lookUp 0.5s ease-out forwards; }
+
+@keyframes bignod {
+  0% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(3deg) translateY(20px); }
+  45% { transform: rotate(0deg) translateY(0); }
+  65% { transform: rotate(3deg) translateY(20px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+.anim-bignod { animation: bignod 1.3s ease-in-out; }
+
+@keyframes writeHead {
+  0% { transform: rotate(0deg) translateY(0); }
+  100% { transform: rotate(6deg) translateY(14px); }
+}
+.anim-write-head { animation: writeHead 0.5s ease-out forwards; }
+
+@keyframes leanIn {
+  0% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.05) translateY(6px); }
+}
+.anim-lean-in { animation: leanIn 0.5s ease-out forwards; }
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+.anim-blink { animation: blink 4.5s infinite; transform-origin: center; transform-box: fill-box; }
+
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.anim-pop { animation: pop 0.35s ease-out forwards; transform-origin: 420px 120px; }
+
+@keyframes scribble {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-10deg); }
+}
+.anim-scribble { animation: scribble 0.35s ease-in-out infinite; }
