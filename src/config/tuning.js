@@ -5,7 +5,7 @@
 
 export const VAD = {
   // RMS 볼륨 임계값 (0~1). 마이크 감도에 따라 0.01~0.05 사이에서 조정.
-  SPEAKING_THRESHOLD: 0.02,
+  SPEAKING_THRESHOLD: 0.008,
   // 히스테리시스: 말 시작/끝 판정에 필요한 연속 시간(ms). 파닥거림 방지.
   ATTACK_MS: 150,   // 이 시간 이상 소리가 지속되어야 "말하는 중"
   RELEASE_MS: 700,  // 이 시간 이상 조용해야 "정적"으로 전환

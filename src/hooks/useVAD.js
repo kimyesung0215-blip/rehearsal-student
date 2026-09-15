@@ -23,6 +23,7 @@ export function useVAD(stream, active) {
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     ctxRef.current = ctx;
+    if (ctx.state === 'suspended') ctx.resume();
     const source = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
