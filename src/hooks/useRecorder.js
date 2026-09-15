@@ -35,7 +35,7 @@ export function useRecorder() {
         setRecording(false);
         const type = rec.mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type });
-        resolve({ url: URL.createObjectURL(blob), type, size: blob.size });
+        resolve({ blob, url: URL.createObjectURL(blob), type, size: blob.size });
       };
       rec.stop();
     });

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Avatar from './components/Avatar';
+import HistoryPanel from './components/HistoryPanel';
 import { useVAD } from './hooks/useVAD';
 import { useSpeechCues } from './hooks/useSpeechCues';
 import { useRecorder } from './hooks/useRecorder';
+import { saveSession } from './lib/sessionDB';
 import { CUE } from './config/tuning';
 
 const DEBUG_STATES = [
@@ -11,16 +13,19 @@ const DEBUG_STATES = [
 ];
 
 export default function App() {
+  const [view, setView] = useState('main'); // 'main' | 'history'
   const [session, setSession] = useState(false);
   const [stream, setStream] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [cueOverride, setCueOverride] = useState(null); // { state, label }
   const [lastCueLabel, setLastCueLabel] = useState(null);
   const [downloads, setDownloads] = useState(null); // { audio, transcript }
+  const [savedNote, setSavedNote] = useState(null); // 저장 성공/실패 안내
   const [debugState, setDebugState] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState(null);
   const cueTimerRef = useRef(null);
+  const elapsedRef = useRef(0);
 
   const { vadState, level } = useVAD(stream, session);
   const { recording, start: startRec, stop: stopRec } = useRecorder();
@@ -39,13 +44,18 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     const t0 = Date.now();
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - t0) / 1000)), 500);
+    const t = setInterval(() => {
+      const sec = Math.floor((Date.now() - t0) / 1000);
+      elapsedRef.current = sec;
+      setElapsed(sec);
+    }, 500);
     return () => clearInterval(t);
   }, [session]);
 
   const startSession = async () => {
     setError(null);
     setDownloads(null);
+    setSavedNote(null);
     resetTranscript();
     try {
       const s = await navigator.mediaDevices.getUserMedia({
@@ -53,6 +63,7 @@ export default function App() {
       });
       setStream(s);
       startRec(s);
+      elapsedRef.current = 0;
       setElapsed(0);
       setSession(true);
     } catch {
@@ -73,6 +84,23 @@ export default function App() {
     setStream(null);
     setCueOverride(null);
     setDownloads({ audio, transcript });
+
+    // 세션 자동 저장 (IndexedDB) — 실패해도 즉석 다운로드는 살아있음
+    if (audio?.blob) {
+      try {
+        await saveSession({
+          createdAt: Date.now(),
+          durationSec: elapsedRef.current,
+          mimeType: audio.type,
+          size: audio.size,
+          audioBlob: audio.blob,
+          transcript: text,
+        });
+        setSavedNote('기록 탭에 저장됐어요');
+      } catch {
+        setSavedNote('자동 저장 실패 — 아래 버튼으로 직접 받아두세요');
+      }
+    }
   };
 
   // 최종 아바타 상태: 디버그 > 2층 큐 > 1층 VAD
@@ -86,14 +114,30 @@ export default function App() {
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center px-4 py-6">
       <header className="w-full max-w-md flex items-center justify-between mb-2">
         <h1 className="text-lg font-bold tracking-tight">리허설 학생</h1>
-        <button
-          onClick={() => { setShowDebug((v) => !v); setDebugState(null); }}
-          className="text-xs text-slate-500 hover:text-slate-300"
-        >
-          {showDebug ? '디버그 끄기' : '디버그'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setView((v) => (v === 'main' ? 'history' : 'main'))}
+            disabled={session}
+            className="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition"
+          >
+            {view === 'main' ? '🗂 기록' : '← 수업'}
+          </button>
+          {view === 'main' && (
+            <button
+              onClick={() => { setShowDebug((v) => !v); setDebugState(null); }}
+              className="text-xs text-slate-500 hover:text-slate-300"
+            >
+              {showDebug ? '디버그 끄기' : '디버그'}
+            </button>
+          )}
+        </div>
       </header>
 
+      {view === 'history' ? (
+        <main className="w-full max-w-md flex-1 pt-2">
+          <HistoryPanel />
+        </main>
+      ) : (
       <main className="w-full max-w-md flex-1 flex flex-col items-center justify-center gap-4">
         <Avatar state={avatarState} />
 
@@ -106,7 +150,7 @@ export default function App() {
               { speaking: '듣고 있어요', idle: '…', silence_short: '멈추셨네요?', silence_long: '계속해 주세요…?' }[vadState]
             )
           ) : (
-            downloads ? '수고했어요! 파일을 저장하세요' : '시작을 누르면 수업이 시작돼요'
+            downloads ? '수고했어요!' : '시작을 누르면 수업이 시작돼요'
           )}
         </div>
 
@@ -132,8 +176,11 @@ export default function App() {
         )}
 
         {error && <p className="text-sm text-red-400">{error}</p>}
+        {savedNote && !session && (
+          <p className="text-xs text-emerald-400/80">{savedNote}</p>
+        )}
 
-        {/* 세션 종료 후 다운로드 */}
+        {/* 세션 종료 직후 즉석 다운로드 */}
         {downloads && (
           <div className="flex flex-col gap-2 w-full">
             {downloads.audio && (
@@ -169,9 +216,10 @@ export default function App() {
           <p className="text-xs text-slate-600">최근 반응: {lastCueLabel}</p>
         )}
       </main>
+      )}
 
       {/* 디버그 패널: 애니메이션 수동 확인 + VAD 레벨 */}
-      {showDebug && (
+      {showDebug && view === 'main' && (
         <footer className="w-full max-w-md mt-4 p-3 rounded-xl bg-slate-800/60">
           <div className="flex flex-wrap gap-1.5 mb-2">
             {DEBUG_STATES.map((s) => (
