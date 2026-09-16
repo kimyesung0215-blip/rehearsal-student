@@ -90,7 +90,7 @@ export function useSpeechCues(active, onCue) {
       }
     };
 
-    try { rec.start(); } catch { /* noop */ }
+    //try { rec.start(); } catch { /* noop */ }
 
     return () => {
       activeRef.current = false;
